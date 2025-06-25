@@ -1,0 +1,14 @@
+{
+  "name": "roleplay-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for businesses, gangs, and contracts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.3.1"
+  }
+}
