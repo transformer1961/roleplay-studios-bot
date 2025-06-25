@@ -1,3 +1,5 @@
+// index.js
+
 const { Client, GatewayIntentBits, SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 require('dotenv').config();
@@ -5,17 +7,20 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Express keep-alive
 app.get('/', (req, res) => res.send('✅ Roleplay Studios Bot is running.'));
 app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
+// Discord client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const token = process.env.DISCORD_BOT_TOKEN;
 const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 
-const ADMIN_ROLE_ID = 'admin-role-id-here';
+const ADMIN_ROLE_ID = '1381694141741924363';
 
+// JSON data helpers
 const loadData = (fileName) => {
   const path = `./data/${fileName}`;
   if (!fs.existsSync(path)) {
@@ -39,6 +44,7 @@ const saveData = (fileName, data) => {
 
 const hasRole = (member, roleId) => member.roles.cache.has(roleId);
 
+// Register commands
 client.once('ready', async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
@@ -50,44 +56,32 @@ client.once('ready', async () => {
     // Business
     new SlashCommandBuilder().setName('register-biz').setDescription('Register a business')
       .addStringOption(opt => opt.setName('name').setDescription('Business name').setRequired(true)),
-
     new SlashCommandBuilder().setName('approve-biz').setDescription('Approve a business by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Business ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('deny-biz').setDescription('Deny a business by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Business ID').setRequired(true))
       .addStringOption(opt => opt.setName('reason').setDescription('Reason for denial').setRequired(true)),
-
     new SlashCommandBuilder().setName('biz-directory').setDescription('List all businesses'),
-
     new SlashCommandBuilder().setName('biz-info').setDescription('View business info')
       .addIntegerOption(opt => opt.setName('id').setDescription('Business ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('audit-business').setDescription('Audit a business by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Business ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('business-terminate').setDescription('Terminate a business by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Business ID').setRequired(true)),
 
     // Gang
     new SlashCommandBuilder().setName('gang-apply').setDescription('Register a gang')
       .addStringOption(opt => opt.setName('name').setDescription('Gang name').setRequired(true)),
-
     new SlashCommandBuilder().setName('gang-approve').setDescription('Approve a gang by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Gang ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('gang-deny').setDescription('Deny a gang by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Gang ID').setRequired(true))
       .addStringOption(opt => opt.setName('reason').setDescription('Reason for denial').setRequired(true)),
-
     new SlashCommandBuilder().setName('gang-list').setDescription('List all gangs'),
-
     new SlashCommandBuilder().setName('gang-info').setDescription('View gang info')
       .addIntegerOption(opt => opt.setName('id').setDescription('Gang ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('audit-gang').setDescription('Audit a gang by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Gang ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('gang-disband').setDescription('Disband a gang by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Gang ID').setRequired(true)),
 
@@ -96,12 +90,10 @@ client.once('ready', async () => {
       .addStringOption(opt => opt.setName('business').setDescription('Business name').setRequired(true))
       .addStringOption(opt => opt.setName('gang').setDescription('Gang name').setRequired(true))
       .addStringOption(opt => opt.setName('terms').setDescription('Contract terms').setRequired(true)),
-
     new SlashCommandBuilder().setName('contract-view').setDescription('View a contract by ID')
       .addIntegerOption(opt => opt.setName('id').setDescription('Contract ID').setRequired(true)),
-
     new SlashCommandBuilder().setName('contract-terminate').setDescription('Terminate a contract by ID')
-      .addIntegerOption(opt => opt.setName('id').setDescription('Contract ID').setRequired(true))
+      .addIntegerOption(opt => opt.setName('id').setDescription('Contract ID').setRequired(true)),
   ].map(c => c.toJSON());
 
   try {
@@ -112,13 +104,14 @@ client.once('ready', async () => {
   }
 });
 
+// Interaction handler
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   const cmd = interaction.commandName;
 
   try {
-    // General
+    // Utility
     if (cmd === 'bot-status') return await interaction.reply('✅ Bot is online.');
     if (cmd === 'ping') return await interaction.reply('🏓 Pong!');
     if (cmd === 'commands') {
@@ -129,7 +122,7 @@ client.on('interactionCreate', async interaction => {
       );
     }
 
-    // Business logic
+    // Businesses
     const businesses = loadData('businesses.json').businesses ?? [];
 
     if (cmd === 'register-biz') {
@@ -140,9 +133,8 @@ client.on('interactionCreate', async interaction => {
       return await interaction.reply(`✅ Business "${name}" registered with ID #${nextId}.`);
     }
 
-    if (cmd === 'approve-biz' || cmd === 'deny-biz' || cmd === 'audit-business' || cmd === 'business-terminate') {
+    if (['approve-biz', 'deny-biz', 'audit-business', 'business-terminate'].includes(cmd)) {
       if (!hasRole(interaction.member, ADMIN_ROLE_ID)) return await interaction.reply('❌ Permission denied.');
-
       const id = interaction.options.getInteger('id');
       const biz = businesses.find(b => b.id === id);
       if (!biz) return await interaction.reply(`❌ Business ID #${id} not found.`);
@@ -186,7 +178,7 @@ client.on('interactionCreate', async interaction => {
       return await interaction.reply(`ℹ️ Business #${biz.id}\nName: ${biz.name}\nStatus: ${biz.status}\nOwner: <@${biz.owner}>`);
     }
 
-    // Gang logic
+    // Gangs
     const gangs = loadData('gangs.json').gangs ?? [];
 
     if (cmd === 'gang-apply') {
@@ -197,9 +189,8 @@ client.on('interactionCreate', async interaction => {
       return await interaction.reply(`✅ Gang "${name}" registered with ID #${nextId}.`);
     }
 
-    if (cmd === 'gang-approve' || cmd === 'gang-deny' || cmd === 'audit-gang' || cmd === 'gang-disband') {
+    if (['gang-approve', 'gang-deny', 'audit-gang', 'gang-disband'].includes(cmd)) {
       if (!hasRole(interaction.member, ADMIN_ROLE_ID)) return await interaction.reply('❌ Permission denied.');
-
       const id = interaction.options.getInteger('id');
       const gang = gangs.find(g => g.id === id);
       if (!gang) return await interaction.reply(`❌ Gang ID #${id} not found.`);
@@ -243,7 +234,7 @@ client.on('interactionCreate', async interaction => {
       return await interaction.reply(`ℹ️ Gang #${gang.id}\nName: ${gang.name}\nStatus: ${gang.status}\nLeader: <@${gang.leader}>`);
     }
 
-    // Contract logic
+    // Contracts
     const contracts = loadData('contracts.json').contracts ?? [];
 
     if (cmd === 'contract-create') {
@@ -260,7 +251,7 @@ client.on('interactionCreate', async interaction => {
       const id = interaction.options.getInteger('id');
       const contract = contracts.find(c => c.id === id);
       if (!contract) return await interaction.reply(`❌ Contract #${id} not found.`);
-      return await interaction.reply(`📄 Contract #${id}\nBusiness: ${contract.business}\nGang: ${contract.gang}\nTerms: ${contract.terms}\nStatus: ${contract.status}`);
+      return await interaction.reply(`📄 Contract #${contract.id}\nBusiness: ${contract.business}\nGang: ${contract.gang}\nTerms: ${contract.terms}\nStatus: ${contract.status}`);
     }
 
     if (cmd === 'contract-terminate') {
@@ -276,9 +267,9 @@ client.on('interactionCreate', async interaction => {
   } catch (err) {
     console.error('❌ Error handling command:', err);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: 'Something went wrong.', ephemeral: true });
+      await interaction.followUp({ content: 'Something went wrong.', flags: 64 });
     } else {
-      await interaction.reply({ content: 'Something went wrong.', ephemeral: true });
+      await interaction.reply({ content: 'Something went wrong.', flags: 64 });
     }
   }
 });
